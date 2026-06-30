@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Woolworths Supply Chain Dashboard — Nishval Singh</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --black: #0a0a0a;
+    --white: #ffffff;
+    --grey-50: #f9f9f9;
+    --grey-100: #f0f0f0;
+    --grey-200: #e0e0e0;
+    --grey-300: #c0c0c0;
+    --grey-500: #737373;
+    --grey-700: #404040;
+    --grey-900: #171717;
+    --ww-green: #1a6b3c;
+    --ww-green-light: #228b4e;
+    --ww-green-pale: #e8f4ed;
+    --ww-gold: #c9a84c;
+    --ww-gold-pale: #fdf6e3;
+    --red: #c0392b;
+    --red-pale: #fdecea;
+    --blue: #1a4b8c;
+    --blue-pale: #e8eef7;
+    --amber: #b7750d;
+    --amber-pale: #fef3dc;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--grey-50);
+    color: var(--grey-900);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* TOP HEADER BAR */
+  .top-header {
+    background: var(--black);
+    color: var(--white);
+    padding: 10px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand-logo {
+    width: 36px;
+    height: 36px;
+    background: var(--ww-green);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: white;
+  }
+
+  .brand-name {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .brand-sub {
+    font-size: 11px;
+    color: var(--grey-300);
+    margin-top: 1px;
+  }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 11px;
+    color: var(--grey-300);
+  }
+
+  .header-meta span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ww-green-light); display: inline-block; }
+  .dot.pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* NAV TABS */
+  .nav-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--grey-200);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-tabs { display: flex; gap: 2px; }
+
+  .nav-tab {
+    padding: 14px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--grey-500);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .nav-tab:hover { color: var(--grey-900); }
+  .nav-tab.active { color: var(--ww-green); border-bottom-color: var(--ww-green); }
+
+  .nav-filters { display: flex; gap: 8px; align-items: center; padding: 8px 0; }
+
+  select {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    padding: 6px 10px;
+    border: 1px solid var(--grey-200);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--grey-700);
+    cursor: pointer;
+    outline: none;
+  }
+
+  select:focus { border-color: var(--ww-green); }
+
+  .filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--grey-500);
+  }
+
+  /* MAIN CONTENT */
+  .content {
+    padding: 24px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .page-title { font-size: 18px; font-weight: 600; letter-spacing: -0.5px; }
+  .page-desc { font-size: 12px; color: var(--grey-500); margin-top: 3px; }
+
+  .record-badge {
+    background: var(--ww-green-pale);
+    color: var(--ww-green);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #b8dfc8;
+  }
+
+  /* KPI CARDS */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .kpi-card {
+    background: var(--white);
+    border: 1px solid var(--grey-200);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+  }
+
+  .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .kpi-card.green::before { background: var(--ww-green); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.gold::before { background: var(--ww-gold); }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.amber::before { background: var(--amber); }
+
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--grey-500);
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi-card.green .kpi-value { color: var(--ww-green); }
+  .kpi-card.red .kpi-value { color: var(--red); }
+  .kpi-card.gold .kpi-value { color: var(--ww-gold); }
+  .kpi-card.blue .kpi-value { color: var(--blue); }
+  .kpi-card.amber .kpi-value { color: var(--amber); }
+
+  .kpi-sub { font-size: 11px; color: var(--grey-500); }
+  .kpi-trend { font-size: 10px; font-weight: 600; margin-top: 4px; }
+  .kpi-trend.up { color: var(--ww-green); }
+  .kpi-trend.down { color: var(--red); }
+  .kpi-trend.neutral { color: var(--amber); }
+
+  /* CHART GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px; }
+  .full { grid-column: 1 / -1; }
+
+  /* CHART CARDS */
+  .chart-card {
+    background: var(--white);
+    border: 1px solid var(--grey-200);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: box-shadow 0.15s;
+  }
+
+  .chart-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+
+  .chart-card-header { margin-bottom: 14px; }
+  .chart-card-title { font-size: 13px; font-weight: 600; letter-spacing: -0.2px; }
+  .chart-card-sub { font-size: 11px; color: var(--grey-500); margin-top: 2px; }
+
+  .chart-wrap { position: relative; }
+
+  /* LEGEND */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--grey-700); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table thead tr { border-bottom: 1px solid var(--grey-200); }
+  .data-table th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--grey-500);
+    white-space: nowrap;
+  }
+  .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--grey-100); font-size: 12px; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--grey-50); }
+  .data-table td:first-child { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--grey-500); }
+
+  /* BADGES */
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .badge-green { background: var(--ww-green-pale); color: var(--ww-green); border: 1px solid #b8dfc8; }
+  .badge-red { background: var(--red-pale); color: var(--red); border: 1px solid #f5c0bc; }
+  .badge-amber { background: var(--amber-pale); color: var(--amber); border: 1px solid #f5d99a; }
+  .badge-blue { background: var(--blue-pale); color: var(--blue); border: 1px solid #b8cce8; }
+  .badge-gold { background: var(--ww-gold-pale); color: var(--ww-gold); border: 1px solid #e8d4a0; }
+
+  /* SCORE BAR */
+  .score-wrap { display: flex; align-items: center; gap: 8px; }
+  .score-bar-bg { flex: 1; height: 6px; background: var(--grey-100); border-radius: 3px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 3px; }
+  .score-val { font-size: 12px; font-weight: 600; min-width: 28px; }
+
+  /* ALERT ITEMS */
+  .alert-list { display: flex; flex-direction: column; gap: 8px; }
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid;
+  }
+  .alert-high { background: var(--red-pale); border-color: #f5c0bc; }
+  .alert-med { background: var(--amber-pale); border-color: #f5d99a; }
+  .alert-low { background: var(--ww-green-pale); border-color: #b8dfc8; }
+  .alert-icon { font-size: 18px; margin-top: 1px; }
+  .alert-title { font-weight: 600; margin-bottom: 2px; }
+  .alert-desc { color: var(--grey-700); }
+
+  /* DAX CARD */
+  .dax-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .dax-item {
+    background: var(--grey-900);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--white);
+  }
+  .dax-name { font-size: 11px; font-weight: 600; color: var(--ww-gold); margin-bottom: 6px; }
+  .dax-formula {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #a8d8b8;
+    line-height: 1.6;
+    word-break: break-all;
+  }
+
+  /* STAT TRIO */
+  .stat-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-mini {
+    background: var(--white);
+    border: 1px solid var(--grey-200);
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .stat-mini-val { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat-mini-label { font-size: 10px; color: var(--grey-500); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* AUTHOR FOOTER */
+  .dash-footer {
+    background: var(--black);
+    color: var(--grey-300);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-top: 32px;
+  }
+  .dash-footer strong { color: var(--white); }
+
+  /* SECTION DIVIDER */
+  .section-head {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--grey-500);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--grey-200);
+  }
+
+  @media print {
+    .top-header, .nav-bar { position: relative; }
+    .chart-card, .kpi-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP HEADER -->
+<div class="top-header">
+  <div class="brand">
+    <div class="brand-logo">WLS</div>
+    <div>
+      <div class="brand-name">Woolworths Supply Chain Intelligence</div>
+      <div class="brand-sub">Built by Nishval Singh · Power BI Portfolio Project</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span><span class="dot pulse"></span> Live dashboard</span>
+    <span>Q1–Q2 2024</span>
+    <span>4 shipments · R570,000 total value</span>
+  </div>
+</div>
+
+<!-- NAV BAR -->
+<div class="nav-bar">
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showPage('exec',this)">Executive Overview</div>
+    <div class="nav-tab" onclick="showPage('supplier',this)">Supplier & Warehouse</div>
+    <div class="nav-tab" onclick="showPage('ops',this)">Operational Insights</div>
+  </div>
+  <div class="nav-filters">
+    <span class="filter-label">Filter by</span>
+    <select id="fQ" onchange="applyFilters()">
+      <option value="all">All Quarters</option>
+      <option value="Q1 2024">Q1 2024</option>
+      <option value="Q2 2024">Q2 2024</option>
+    </select>
+    <select id="fS" onchange="applyFilters()">
+      <option value="all">All Suppliers</option>
+      <option value="Supplier A">Supplier A</option>
+      <option value="Supplier B">Supplier B</option>
+      <option value="Supplier C">Supplier C</option>
+      <option value="Supplier D">Supplier D</option>
+    </select>
+    <select id="fC" onchange="applyFilters()">
+      <option value="all">All Categories</option>
+      <option value="Food">Food</option>
+      <option value="Clothing">Clothing</option>
+      <option value="Home">Home</option>
+      <option value="Beauty">Beauty</option>
+    </select>
+    <select id="fW" onchange="applyFilters()">
+      <option value="all">All Warehouses</option>
+      <option value="Johannesburg DC">Johannesburg DC</option>
+      <option value="Cape Town DC">Cape Town DC</option>
+      <option value="Durban DC">Durban DC</option>
+    </select>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- PAGE 1: EXEC -->
+  <div class="page active" id="page-exec">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Executive Overview</div>
+        <div class="page-desc">High-level supply chain performance across all shipments and regions</div>
+      </div>
+      <div id="recBadge" class="record-badge">4 shipments</div>
+    </div>
+    <div class="kpi-row" id="kpiRow"></div>
+    <div class="grid-2">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">On-Time vs Delayed Shipments</div>
+          <div class="chart-card-sub">Count of shipments by delivery status</div>
+        </div>
+        <div class="chart-wrap" style="height:210px"><canvas id="donutChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Shipment Value by Category</div>
+          <div class="chart-card-sub">Total value (ZAR) per product category</div>
+        </div>
+        <div class="chart-wrap" style="height:210px"><canvas id="catChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Shipment Value vs Loss Value Trend</div>
+        <div class="chart-card-sub">By expected arrival date across all shipments</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#1a6b3c"></div>Shipment Value</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Loss Value</div>
+      </div>
+      <div class="chart-wrap" style="height:170px"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Risk Indicators</div>
+        <div class="chart-card-sub">Shipments ranked by loss value — highest risk first</div>
+      </div>
+      <div class="alert-list" id="riskList"></div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: SUPPLIER -->
+  <div class="page" id="page-supplier">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Supplier & Warehouse Performance</div>
+        <div class="page-desc">Comparative analysis of supplier quality scores and DC-level metrics</div>
+      </div>
+      <div id="recBadge2" class="record-badge">4 shipments</div>
+    </div>
+    <div class="stat-trio" id="whStats"></div>
+    <div class="grid-2">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Supplier Performance Score</div>
+          <div class="chart-card-sub">Composite score: OTD (40%) · Quality (35%) · Loss (25%)</div>
+        </div>
+        <div id="supplierScores"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Damage Rate by Supplier</div>
+          <div class="chart-card-sub">Damaged units as % of units received</div>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="damageChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Average Delay Days by Warehouse</div>
+          <div class="chart-card-sub">Mean delay per distribution centre</div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="whDelayChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Shipment Value by Warehouse</div>
+          <div class="chart-card-sub">Total ZAR value per DC</div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="whValChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Shipment Detail</div>
+        <div class="chart-card-sub">All filtered shipments with full metrics</div>
+      </div>
+      <div style="overflow-x:auto" id="detailTable"></div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: OPS -->
+  <div class="page" id="page-ops">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Operational Insights</div>
+        <div class="page-desc">Transport mode analysis, category performance and country risk mapping</div>
+      </div>
+      <div id="recBadge3" class="record-badge">4 shipments</div>
+    </div>
+    <div class="grid-2">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">On-Time Rate by Transport Mode</div>
+          <div class="chart-card-sub">% of shipments delivered on time per mode</div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="modeOTChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Average Delay by Transport Mode</div>
+          <div class="chart-card-sub">Mean delay days per transport type</div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="modeDelayChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Category On-Time Performance</div>
+          <div class="chart-card-sub">On-time delivery rate by product category</div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="catOTChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Delay by Priority Level</div>
+          <div class="chart-card-sub">Average delay days per shipment priority</div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="priChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Country of Origin — Loss & Delay Risk</div>
+        <div class="chart-card-sub">Loss value and average delay by source country</div>
+      </div>
+      <div class="chart-wrap" style="height:180px"><canvas id="countryChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">DAX Measures Reference</div>
+        <div class="chart-card-sub">Power BI calculated measures used in this dashboard</div>
+      </div>
+      <div class="dax-grid" id="daxGrid"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="dash-footer">
+  <div><strong>Nishval Singh</strong> · Supply Chain Business Analyst · Power BI Portfolio</div>
+  <div>Built with Power BI · DAX · Data Modelling · Cross-filter Architecture</div>
+  <div>Q1–Q2 2024 · Woolworths SA Supply Chain Dataset</div>
+</div>
+
+<script>
+const RAW = [
+  {id:'WLS001',supplier:'Supplier A',category:'Food',warehouse:'Johannesburg DC',country:'Kenya',expected:'2024-01-10',actual:'2024-01-11',ontime:false,delay:1,status:'Delivered',ordered:1000,received:980,damaged:10,lost:10,cpu:50,value:50000,loss:1000,mode:'Air',priority:'High',quarter:'Q1 2024'},
+  {id:'WLS002',supplier:'Supplier B',category:'Clothing',warehouse:'Cape Town DC',country:'China',expected:'2024-02-05',actual:'2024-02-05',ontime:true,delay:0,status:'Delivered',ordered:2000,received:2000,damaged:0,lost:0,cpu:120,value:240000,loss:0,mode:'Sea',priority:'Medium',quarter:'Q1 2024'},
+  {id:'WLS003',supplier:'Supplier C',category:'Home',warehouse:'Durban DC',country:'Germany',expected:'2024-03-12',actual:'2024-03-16',ontime:false,delay:4,status:'Delayed',ordered:1500,received:1450,damaged:20,lost:30,cpu:80,value:120000,loss:4000,mode:'Sea',priority:'High',quarter:'Q1 2024'},
+  {id:'WLS004',supplier:'Supplier D',category:'Beauty',warehouse:'Johannesburg DC',country:'France',expected:'2024-04-20',actual:'2024-04-21',ontime:false,delay:1,status:'Delivered',ordered:800,received:790,damaged:5,lost:5,cpu:200,value:160000,loss:2000,mode:'Air',priority:'Low',quarter:'Q2 2024'},
+];
+
+let filtered = [...RAW];
+let charts = {};
+
+const fmtZAR = n => 'R ' + n.toLocaleString('en-ZA');
+const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+const pct = (n,d) => d ? (n/d*100).toFixed(1) : '0.0';
+
+const COLORS = {
+  green: '#1a6b3c', greenL: '#228b4e', greenP: '#e8f4ed',
+  red: '#c0392b', redP: '#fdecea',
+  gold: '#c9a84c', goldP: '#fdf6e3',
+  blue: '#1a4b8c', blueP: '#e8eef7',
+  amber: '#b7750d', amberP: '#fef3dc',
+  purple: '#6b3fa0', grey: '#737373'
+};
+
+function applyFilters(){
+  const q=document.getElementById('fQ').value, s=document.getElementById('fS').value,
+        c=document.getElementById('fC').value, w=document.getElementById('fW').value;
+  filtered = RAW.filter(r=>
+    (q==='all'||r.quarter===q)&&(s==='all'||r.supplier===s)&&
+    (c==='all'||r.category===c)&&(w==='all'||r.warehouse===w)
+  );
+  const txt = filtered.length + ' shipment' + (filtered.length!==1?'s':'');
+  ['recBadge','recBadge2','recBadge3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=txt; });
+  renderAll();
+}
+
+function destroy(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+const chartDefaults = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{display:false} },
+  scales:{
+    x:{ grid:{display:false}, ticks:{font:{size:10,family:'Inter'},color:'#737373'} },
+    y:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{font:{size:10,family:'Inter'},color:'#737373'} }
+  }
+};
+
+function supplierScore(data, s){
+  const rows = data.filter(r=>r.supplier===s);
+  if(!rows.length) return 0;
+  const otd = rows.filter(r=>r.ontime).length/rows.length*40;
+  const recv = rows.reduce((a,r)=>a+r.received,0);
+  const bad = rows.reduce((a,r)=>a+r.damaged+r.lost,0);
+  const quality = recv?(1-bad/recv)*35:0;
+  const loss = rows.reduce((a,r)=>a+r.loss,0);
+  const val = rows.reduce((a,r)=>a+r.value,0);
+  const lossScore = val?(1-loss/val)*25:25;
+  return Math.round(otd+quality+lossScore);
+}
+
+function renderAll(){
+  renderKPIs(); renderExec(); renderSupplier(); renderOps();
+}
+
+function renderKPIs(){
+  const d=filtered, tot=d.length;
+  const otCount=d.filter(r=>r.ontime).length;
+  const totVal=d.reduce((a,r)=>a+r.value,0);
+  const totLoss=d.reduce((a,r)=>a+r.loss,0);
+  const totDam=d.reduce((a,r)=>a+r.damaged,0);
+  const totRecv=d.reduce((a,r)=>a+r.received,0);
+  const avgDelay=avg(d.map(r=>r.delay));
+  const otRate=tot?otCount/tot*100:0;
+  const damRate=totRecv?totDam/totRecv*100:0;
+
+  document.getElementById('kpiRow').innerHTML = [
+    {cls:'green',label:'On-Time Delivery Rate',val:otRate.toFixed(1)+'%',sub:'Target: 95%',trend:otRate>=95?'up':'down',trendTxt:otRate>=95?'▲ On target':'▼ Below target'},
+    {cls:'blue',label:'Avg Delay Days',val:avgDelay.toFixed(1)+' days',sub:tot+' total shipments',trend:avgDelay===0?'up':'neutral',trendTxt:avgDelay===0?'No delays':'Action needed'},
+    {cls:'gold',label:'Total Shipment Value',val:fmtZAR(totVal),sub:'Across all categories',trend:'neutral',trendTxt:tot+' shipments'},
+    {cls:'red',label:'Total Loss Value',val:fmtZAR(totLoss),sub:pct(totLoss,totVal)+'% of shipment value',trend:totLoss===0?'up':'down',trendTxt:totLoss===0?'Zero loss':'Review required'},
+    {cls:'amber',label:'Damage Rate',val:damRate.toFixed(2)+'%',sub:'Damaged / units received',trend:damRate<1?'up':'down',trendTxt:damRate<1?'Within threshold':'Above threshold'},
+  ].map(k=>`
+    <div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-trend ${k.trend}">${k.trendTxt}</div>
+    </div>`).join('');
+}
+
+function renderExec(){
+  const d=filtered, tot=d.length;
+  const otCount=d.filter(r=>r.ontime).length;
+
+  destroy('donutChart');
+  charts['donutChart'] = new Chart(document.getElementById('donutChart'),{
+    type:'doughnut',
+    data:{labels:['On Time','Delayed'],datasets:[{data:[otCount,tot-otCount],backgroundColor:[COLORS.green,COLORS.red],borderWidth:3,borderColor:'#fff',hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11,family:'Inter'},padding:16,usePointStyle:true}}}}
+  });
+
+  const cats=[...new Set(d.map(r=>r.category))];
+  const catVals=cats.map(c=>d.filter(r=>r.category===c).reduce((a,r)=>a+r.value,0));
+  const catColors=[COLORS.green,COLORS.blue,COLORS.gold,COLORS.amber,COLORS.purple];
+  destroy('catChart');
+  charts['catChart'] = new Chart(document.getElementById('catChart'),{
+    type:'bar',
+    data:{labels:cats,datasets:[{data:catVals,backgroundColor:catColors,borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>'R'+v.toLocaleString()}}}}
+  });
+
+  const sorted=[...d].sort((a,b)=>new Date(a.expected)-new Date(b.expected));
+  destroy('trendChart');
+  charts['trendChart'] = new Chart(document.getElementById('trendChart'),{
+    type:'line',
+    data:{labels:sorted.map(r=>r.id),datasets:[
+      {label:'Value',data:sorted.map(r=>r.value),borderColor:COLORS.green,backgroundColor:'rgba(26,107,60,0.08)',tension:0.35,borderWidth:2.5,pointRadius:5,pointBackgroundColor:COLORS.green,fill:true},
+      {label:'Loss',data:sorted.map(r=>r.loss),borderColor:COLORS.red,backgroundColor:'rgba(192,57,43,0.08)',tension:0.35,borderWidth:2.5,pointRadius:5,pointBackgroundColor:COLORS.red,fill:true,borderDash:[5,3]},
+    ]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>'R'+v.toLocaleString()}}}}
+  });
+
+  const riskSorted=[...d].sort((a,b)=>b.loss-a.loss);
+  document.getElementById('riskList').innerHTML = riskSorted.map(r=>`
+    <div class="alert-item ${r.loss>2000?'alert-high':r.loss>0?'alert-med':'alert-low'}">
+      <div class="alert-icon">${r.loss>2000?'⚠️':r.loss>0?'⚡':'✅'}</div>
+      <div style="flex:1">
+        <div class="alert-title">${r.id} — ${r.supplier} · ${r.category} · ${r.warehouse}</div>
+        <div class="alert-desc">Loss: ${fmtZAR(r.loss)} &nbsp;·&nbsp; Delay: ${r.delay} days &nbsp;·&nbsp; Mode: ${r.mode} &nbsp;·&nbsp; Status: ${r.status} &nbsp;·&nbsp; Country: ${r.country}</div>
+      </div>
+      <span class="badge ${r.loss>2000?'badge-red':r.loss>0?'badge-amber':'badge-green'}">${r.loss>2000?'High Risk':r.loss>0?'Medium Risk':'No Loss'}</span>
+    </div>`).join('');
+}
+
+function renderSupplier(){
+  const d=filtered;
+  const whs=[...new Set(d.map(r=>r.warehouse))];
+  document.getElementById('whStats').innerHTML = whs.map((w,i)=>{
+    const rows=d.filter(r=>r.warehouse===w);
+    const val=rows.reduce((a,r)=>a+r.value,0);
+    const delay=avg(rows.map(r=>r.delay));
+    const colors=[COLORS.green,COLORS.blue,COLORS.gold];
+    return `<div class="stat-mini">
+      <div class="stat-mini-val" style="color:${colors[i%3]}">${fmtZAR(val)}</div>
+      <div class="stat-mini-label">${w}</div>
+      <div style="font-size:10px;color:${delay===0?COLORS.green:COLORS.amber};margin-top:2px;font-weight:600">Avg delay: ${delay.toFixed(1)} days</div>
+    </div>`;
+  }).join('');
+
+  const supps=[...new Set(RAW.map(r=>r.supplier))];
+  document.getElementById('supplierScores').innerHTML = supps.sort((a,b)=>supplierScore(d,b)-supplierScore(d,a)).map(s=>{
+    const score=supplierScore(d,s);
+    const color=score>=80?COLORS.green:score>=60?COLORS.amber:COLORS.red;
+    const inFilter=d.some(r=>r.supplier===s);
+    return `<div style="margin-bottom:12px;opacity:${inFilter?1:0.3}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:12px;font-weight:500">${s}</span>
+        <span class="badge ${score>=80?'badge-green':score>=60?'badge-gold':'badge-red'}">${score>=80?'Excellent':score>=60?'Average':'Poor'}</span>
+      </div>
+      <div class="score-wrap">
+        <div class="score-bar-bg"><div class="score-bar-fill" style="width:${score}%;background:${color}"></div></div>
+        <span class="score-val" style="color:${color}">${score}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const suppNames=[...new Set(d.map(r=>r.supplier))];
+  const dmgRates=suppNames.map(s=>{const rows=d.filter(r=>r.supplier===s);const recv=rows.reduce((a,r)=>a+r.received,0);const dam=rows.reduce((a,r)=>a+r.damaged,0);return recv?parseFloat((dam/recv*100).toFixed(2)):0;});
+  destroy('damageChart');
+  charts['damageChart']=new Chart(document.getElementById('damageChart'),{
+    type:'bar',data:{labels:suppNames,datasets:[{data:dmgRates,backgroundColor:[COLORS.green,COLORS.blue,COLORS.red,COLORS.amber],borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+
+  const whNames=[...new Set(d.map(r=>r.warehouse))];
+  const whDelays=whNames.map(w=>parseFloat(avg(d.filter(r=>r.warehouse===w).map(r=>r.delay)).toFixed(1)));
+  const whVals=whNames.map(w=>d.filter(r=>r.warehouse===w).reduce((a,r)=>a+r.value,0));
+  destroy('whDelayChart');
+  charts['whDelayChart']=new Chart(document.getElementById('whDelayChart'),{
+    type:'bar',data:{labels:whNames.map(w=>w.replace(' DC','')),datasets:[{data:whDelays,backgroundColor:COLORS.purple,borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'d'}}}}
+  });
+  destroy('whValChart');
+  charts['whValChart']=new Chart(document.getElementById('whValChart'),{
+    type:'bar',data:{labels:whNames.map(w=>w.replace(' DC','')),datasets:[{data:whVals,backgroundColor:[COLORS.green,COLORS.blue,COLORS.gold],borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>'R'+v.toLocaleString()}}}}
+  });
+
+  document.getElementById('detailTable').innerHTML = `<table class="data-table">
+    <thead><tr><th>ID</th><th>Supplier</th><th>Category</th><th>Warehouse</th><th>Value</th><th>Loss</th><th>Status</th><th>On Time</th><th>Delay</th><th>Mode</th><th>Quarter</th></tr></thead>
+    <tbody>${d.map(r=>`<tr>
+      <td>${r.id}</td><td>${r.supplier}</td><td>${r.category}</td><td>${r.warehouse}</td>
+      <td style="font-weight:500">${fmtZAR(r.value)}</td>
+      <td style="color:${r.loss>0?COLORS.red:COLORS.green};font-weight:500">${fmtZAR(r.loss)}</td>
+      <td><span class="badge ${r.status==='Delivered'?'badge-green':'badge-red'}">${r.status}</span></td>
+      <td><span class="badge ${r.ontime?'badge-green':'badge-red'}">${r.ontime?'Yes':'No'}</span></td>
+      <td style="font-weight:500">${r.delay}d</td><td>${r.mode}</td><td>${r.quarter}</td></tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderOps(){
+  const d=filtered;
+  const modes=[...new Set(d.map(r=>r.mode))];
+  const modeOT=modes.map(m=>{const rows=d.filter(r=>r.mode===m);return parseFloat((rows.filter(r=>r.ontime).length/rows.length*100).toFixed(1));});
+  const modeDelay=modes.map(m=>parseFloat(avg(d.filter(r=>r.mode===m).map(r=>r.delay)).toFixed(1)));
+  destroy('modeOTChart');
+  charts['modeOTChart']=new Chart(document.getElementById('modeOTChart'),{
+    type:'bar',data:{labels:modes,datasets:[{data:modeOT,backgroundColor:[COLORS.green,COLORS.blue],borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,max:100,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+  destroy('modeDelayChart');
+  charts['modeDelayChart']=new Chart(document.getElementById('modeDelayChart'),{
+    type:'bar',data:{labels:modes,datasets:[{data:modeDelay,backgroundColor:[COLORS.amber,COLORS.red],borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'d'}}}}
+  });
+  const cats=[...new Set(d.map(r=>r.category))];
+  const catOT=cats.map(c=>{const rows=d.filter(r=>r.category===c);return parseFloat((rows.filter(r=>r.ontime).length/rows.length*100).toFixed(1));});
+  destroy('catOTChart');
+  charts['catOTChart']=new Chart(document.getElementById('catOTChart'),{
+    type:'bar',data:{labels:cats,datasets:[{data:catOT,backgroundColor:[COLORS.green,COLORS.blue,COLORS.gold,COLORS.amber],borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,max:100,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+  const pris=[...new Set(d.map(r=>r.priority))];
+  const priDelay=pris.map(p=>parseFloat(avg(d.filter(r=>r.priority===p).map(r=>r.delay)).toFixed(1)));
+  destroy('priChart');
+  charts['priChart']=new Chart(document.getElementById('priChart'),{
+    type:'bar',data:{labels:pris,datasets:[{data:priDelay,backgroundColor:[COLORS.red,COLORS.amber,COLORS.green],borderRadius:6,borderSkipped:false}]},
+    options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'d'}}}}
+  });
+  const countries=[...new Set(d.map(r=>r.country))];
+  const countryLoss=countries.map(c=>d.filter(r=>r.country===c).reduce((a,r)=>a+r.loss,0));
+  const countryDelay=countries.map(c=>parseFloat(avg(d.filter(r=>r.country===c).map(r=>r.delay)).toFixed(1)));
+  destroy('countryChart');
+  charts['countryChart']=new Chart(document.getElementById('countryChart'),{
+    type:'bar',
+    data:{labels:countries,datasets:[
+      {label:'Loss Value (R)',data:countryLoss,backgroundColor:COLORS.red,borderRadius:6,borderSkipped:false},
+      {label:'Avg Delay (days×1000)',data:countryDelay.map(d=>d*1000),backgroundColor:COLORS.amber,borderRadius:6,borderSkipped:false},
+    ]},
+    options:{...chartDefaults,plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11,family:'Inter'},padding:14,usePointStyle:true}}}}
+  });
+
+  const dax=[
+    {name:'On-Time Rate %',f:"DIVIDE(COUNTROWS(FILTER(Shipments,[On_Time_Flag]=\"Yes\")),COUNTROWS(Shipments))*100"},
+    {name:'Avg Delay Days',f:"AVERAGEX(Shipments,[Delay_Days])"},
+    {name:'Total Shipment Value',f:"SUM(Shipments[Total_Shipment_Value])"},
+    {name:'Total Loss Value',f:"SUM(Shipments[Loss_Value])"},
+    {name:'Damage Rate %',f:"DIVIDE(SUM([Damaged_Units]),SUM([Quantity_Received]))*100"},
+    {name:'Lost Units %',f:"DIVIDE(SUM([Lost_Units]),SUM([Quantity_Received]))*100"},
+    {name:'Supplier Score',f:"([OTD]*0.4)+([Quality]*0.35)+([LossScore]*0.25)"},
+    {name:'Fill Rate %',f:"DIVIDE(SUM([Qty_Received]),SUM([Qty_Ordered]))*100"},
+    {name:'Loss % of Value',f:"DIVIDE(SUM([Loss_Value]),SUM([Total_Shipment_Value]))*100"},
+  ];
+  document.getElementById('daxGrid').innerHTML=dax.map(d=>`
+    <div class="dax-item">
+      <div class="dax-name">${d.name}</div>
+      <div class="dax-formula">${d.f}</div>
+    </div>`).join('');
+}
+
+function showPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+renderAll();
+</script>
+</body>
+</html>
